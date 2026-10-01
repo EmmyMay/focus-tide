@@ -1,4 +1,5 @@
 const BUTTON_INPUT_TYPES = new Set(['button', 'submit', 'reset', 'checkbox', 'radio']);
+const BUTTON_ROLES = new Set(['button', 'checkbox', 'switch', 'tab']);
 
 function tagNameOf(element) {
   if (!element || typeof element !== 'object') {
@@ -27,12 +28,18 @@ export function isTextEntryElement(element) {
 
 export function isButtonElement(element) {
   const tag = tagNameOf(element);
-  if (tag === 'BUTTON') {
+  if (tag === 'BUTTON' || tag === 'SUMMARY') {
     return true;
   }
   if (tag === 'INPUT') {
     const type = typeof element.type === 'string' ? element.type.toLowerCase() : '';
     return BUTTON_INPUT_TYPES.has(type);
+  }
+  const role = typeof element.getAttribute === 'function'
+    ? element.getAttribute('role')
+    : element.role;
+  if (typeof role === 'string' && BUTTON_ROLES.has(role.toLowerCase())) {
+    return true;
   }
   return false;
 }
@@ -68,13 +75,13 @@ export function keyToAction(event, context = {}) {
     return { type: 'cancel' };
   }
 
-  if (code === 'Digit1' || code === 'Numpad1' || key === '1') {
+  if (code === 'Digit1' || key === '1') {
     return { type: 'preset', minutes: 25 };
   }
-  if (code === 'Digit2' || code === 'Numpad2' || key === '2') {
+  if (code === 'Digit2' || key === '2') {
     return { type: 'preset', minutes: 50 };
   }
-  if (code === 'Digit3' || code === 'Numpad3' || key === '3') {
+  if (code === 'Digit3' || key === '3') {
     return { type: 'preset', minutes: 90 };
   }
 
