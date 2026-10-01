@@ -104,10 +104,12 @@ function resolveDocument(container, options) {
   return doc;
 }
 
+// Stop colours come from the stylesheet, not from `stop-color` presentation
+// attributes, so the dark-palette media query reaches them.
 function buildWaterGradient(doc, id) {
   const gradient = svg(doc, 'linearGradient', { id, x1: '0', y1: '0', x2: '0', y2: '1' });
-  gradient.appendChild(svg(doc, 'stop', { offset: '0', 'stop-color': 'var(--tide-water-top)' }));
-  gradient.appendChild(svg(doc, 'stop', { offset: '1', 'stop-color': 'var(--tide-water-bottom)' }));
+  gradient.appendChild(svg(doc, 'stop', { class: 'tide__stop tide__stop--top', offset: '0' }));
+  gradient.appendChild(svg(doc, 'stop', { class: 'tide__stop tide__stop--bottom', offset: '1' }));
   return gradient;
 }
 
@@ -130,6 +132,11 @@ export function createTide(container, options = {}) {
 
   const root = doc.createElement('div');
   root.classList.add('tide');
+  // The gradient id is per-instance, so the stylesheet cannot name it. Handing
+  // it to CSS as a custom property keeps the stylesheet in charge of `fill`: a
+  // `fill` presentation attribute would lose to any CSS rule and the gradient
+  // would silently never paint.
+  root.style.setProperty('--tide-wave-fill', `url(#${gradientId})`);
 
   const figure = doc.createElement('div');
   figure.classList.add('tide__figure');
@@ -162,7 +169,6 @@ export function createTide(container, options = {}) {
     svg(doc, 'path', {
       class: 'tide__wave tide__wave--front',
       d: buildWavePath({ baseline: 6, amplitude: 2.5, period: 50, crestFirst: true }),
-      fill: `url(#${gradientId})`,
     }),
   );
   canvas.appendChild(water);

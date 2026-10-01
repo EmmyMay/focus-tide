@@ -22,8 +22,14 @@ class FakeNode {
     this.attributes = new Map();
     this.childNodes = [];
     this.parentNode = null;
-    this.style = {};
     this._text = '';
+
+    const custom = new Map();
+    this.style = {
+      setProperty: (name, value) => custom.set(name, String(value)),
+      getPropertyValue: (name) => custom.get(name) ?? '',
+      removeProperty: (name) => custom.delete(name),
+    };
 
     const classes = new Set();
     this.classList = {
@@ -278,16 +284,38 @@ test('createTide renders inline SVG with no external asset references', () => {
   assert.equal(external, null, 'nothing is loaded from outside the document');
 });
 
+const idOf = (root) => find(root, (node) => node.tagName === 'linearGradient').getAttribute('id');
+
 test('createTide gives each instance its own gradient id', () => {
   const first = mount();
   const second = mount();
 
-  const idOf = (root) => find(root, (node) => node.tagName === 'linearGradient').getAttribute('id');
-  const fillOf = (root) => find(root, bySvgClass('tide__wave--front')).getAttribute('fill');
-
   assert.notEqual(idOf(first.root), idOf(second.root), 'ids do not collide between instances');
-  assert.equal(fillOf(first.root), `url(#${idOf(first.root)})`);
-  assert.equal(fillOf(second.root), `url(#${idOf(second.root)})`);
+  assert.equal(first.root.style.getPropertyValue('--tide-wave-fill'), `url(#${idOf(first.root)})`);
+  assert.equal(second.root.style.getPropertyValue('--tide-wave-fill'), `url(#${idOf(second.root)})`);
+});
+
+// A `fill` presentation attribute loses to any CSS rule, so setting the
+// gradient that way means it silently never paints. The stylesheet has to be
+// the one that applies it, via the custom property.
+test('the gradient reaches the wave through CSS, not a presentation attribute', () => {
+  const { root } = mount();
+  const front = find(root, bySvgClass('tide__wave--front'));
+
+  assert.equal(front.getAttribute('fill'), null, 'no fill attribute for CSS to override');
+  assert.equal(root.style.getPropertyValue('--tide-wave-fill'), `url(#${idOf(root)})`);
+});
+
+test('gradient stops take their colour from the stylesheet so dark mode reaches them', () => {
+  const { root } = mount();
+  const stops = findAll(root, (node) => node.tagName === 'stop');
+
+  assert.equal(stops.length, 2);
+  for (const stop of stops) {
+    assert.equal(stop.getAttribute('stop-color'), null, 'no hardcoded stop colour');
+  }
+  assert.ok(find(root, bySvgClass('tide__stop--top')), 'top stop is styleable');
+  assert.ok(find(root, bySvgClass('tide__stop--bottom')), 'bottom stop is styleable');
 });
 
 test('createTide hides the decorative illustration from assistive tech', () => {
