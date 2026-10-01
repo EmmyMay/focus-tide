@@ -150,6 +150,16 @@ test('Space defers to summary and button-like ARIA roles', () => {
   }
 });
 
+test('helpers tolerate missing or non-object targets', () => {
+  assert.equal(isButtonElement(null), false);
+  assert.equal(isButtonElement(undefined), false);
+  assert.equal(isTextEntryElement(null), false);
+  assert.equal(isTextEntryElement(undefined), false);
+  assert.deepEqual(keyToAction({ key: ' ', code: 'Space' }), { type: 'toggle' });
+  assert.deepEqual(keyToAction({ key: ' ', code: 'Space', target: null }), { type: 'toggle' });
+  assert.deepEqual(keyToAction({ key: 'Escape', code: 'Escape' }), { type: 'cancel' });
+});
+
 test('explicit context overrides target inspection', () => {
   const event = keyEvent({ key: ' ', code: 'Space', target: { tagName: 'DIV' } });
   assert.deepEqual(keyToAction(event, { isButton: true }), null);
