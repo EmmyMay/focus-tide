@@ -66,10 +66,13 @@ export function pauseTimer(state, now) {
   if (state.status !== 'running') {
     return state;
   }
+  if (now >= state.endsAt) {
+    return state;
+  }
   return {
     status: 'paused',
     durationMs: state.durationMs,
-    remainingMs: Math.max(0, state.endsAt - now),
+    remainingMs: state.endsAt - now,
     startedAt: state.startedAt,
     endsAt: null,
     label: state.label
