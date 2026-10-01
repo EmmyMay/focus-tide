@@ -262,12 +262,14 @@ function applyCustom() {
   if (timer.status !== 'idle') {
     return;
   }
-  const value = Number.parseInt(elements.custom.value, 10);
-  if (!Number.isInteger(value)) {
+  const value = elements.custom.valueAsNumber;
+  if (!Number.isInteger(value) || value < 1 || value > 180) {
+    announce('Choose a whole number between 1 and 180.');
     return;
   }
   try {
     timer = setDuration(timer, value);
+    elements.custom.value = '';
     announce(`${value} minute timer selected.`);
     render();
   } catch {
@@ -276,8 +278,8 @@ function applyCustom() {
 }
 
 function applyGoal() {
-  const value = Number.parseInt(elements.goal.value, 10);
-  if (!isFinitePositive(value)) {
+  const value = elements.goal.valueAsNumber;
+  if (!Number.isInteger(value) || value < 1) {
     elements.goal.value = String(dailyGoal);
     return;
   }
