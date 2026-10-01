@@ -67,6 +67,7 @@ let timer = createTimer(25);
 let sessions = [];
 let dailyGoal = DEFAULT_DAILY_GOAL;
 let tickHandle = null;
+let lastAnnouncedMinute = null;
 
 const weekView = createWeekView(elements.week);
 const tide = tideApi ? tideApi.createTide(elements.tide) : null;
@@ -151,16 +152,31 @@ function renderRemaining() {
   const text = formatRemaining(ms);
   elements.remaining.textContent = text;
   document.title = timer.status === 'running' ? `${text} · Focus Tide` : 'Focus Tide';
+
+  if (timer.status === 'running') {
+    const minutesLeft = Math.max(1, Math.ceil(ms / 60000));
+    if (minutesLeft !== lastAnnouncedMinute) {
+      lastAnnouncedMinute = minutesLeft;
+      announce(`${minutesLeft} minute${minutesLeft === 1 ? '' : 's'} remaining.`);
+    }
+  } else {
+    lastAnnouncedMinute = null;
+  }
 }
 
 function renderStats() {
   const now = Date.now();
   elements.today.textContent = String(getTodayMinutes(sessions, now));
   elements.streak.textContent = String(getStreak(sessions, dailyGoal, now));
-  elements.goal.value = String(dailyGoal);
   weekView.update(getWeek(sessions, now));
   if (tide) {
     tide.update({ minutes: getTodayMinutes(sessions, now), goal: dailyGoal });
+  }
+}
+
+function renderGoalInput() {
+  if (document.activeElement !== elements.goal) {
+    elements.goal.value = String(dailyGoal);
   }
 }
 
@@ -193,6 +209,7 @@ function render() {
   renderStats();
   renderSessions();
   renderControls();
+  renderGoalInput();
 }
 
 function stopTicking() {
@@ -238,7 +255,15 @@ function pause() {
   if (timer.status !== 'running') {
     return;
   }
-  timer = pauseTimer(timer, Date.now());
+  const now = Date.now();
+  const result = advanceTimer(timer, now);
+  timer = result.state;
+  if (result.completed) {
+    handleCompletion(result.completed);
+    render();
+    return;
+  }
+  timer = pauseTimer(timer, now);
   saveSnapshot();
   stopTicking();
   announce('Timer paused.');
@@ -305,6 +330,7 @@ function applyGoal() {
     return;
   }
   dailyGoal = Math.min(value, MAX_DAILY_GOAL);
+  elements.goal.value = String(dailyGoal);
   saveSnapshot();
   renderStats();
 }
@@ -354,3 +380,24 @@ if (timer.status === 'running') {
   ensureTicking();
 }
 render();
+
+const HEARTBEAT_MS = 30000;
+
+function reconcile() {
+  const now = Date.now();
+  if (timer.status === 'running') {
+    const result = advanceTimer(timer, now);
+    timer = result.state;
+    if (result.completed) {
+      handleCompletion(result.completed);
+    }
+  }
+  render();
+}
+
+setInterval(reconcile, HEARTBEAT_MS);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    reconcile();
+  }
+});
