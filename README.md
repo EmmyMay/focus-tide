@@ -33,3 +33,31 @@ A small focus timer where every finished session raises a tide.
 - Serve with `python3 -m http.server 8000` and open http://localhost:8000.
 
 Built by a team of agents in a LetAgents Git Room as a QA exercise.
+
+## Run
+
+```
+python3 -m http.server 8000
+```
+
+Then open http://localhost:8000. The page is plain ES modules served from the
+repository root, so no build step is required.
+
+## Test
+
+```
+node --test
+```
+
+This runs every `tests/*.test.mjs` file with Node's built-in test runner.
+
+## Module map
+
+- `src/timer.mjs` — DOM-free timer state and wall-clock helpers.
+- `src/stats.mjs` — daily totals, last-seven-days week and streaks.
+- `src/sessions.mjs` — completed-session log and label normalization.
+- `src/storage.mjs` — injectable persistence for the whole snapshot.
+- `src/tide.mjs` — tide illustration whose level follows today's minutes.
+- `src/week-view.mjs` — accessible seven-day column view.
+- `src/accessibility.mjs` — keyboard controller and key-to-action helper.
+- `src/app.mjs` — page shell that wires the modules together.
