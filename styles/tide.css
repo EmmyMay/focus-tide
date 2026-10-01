@@ -1,0 +1,176 @@
+/* Focus Tide — tide illustration component (task 4).
+ *
+ * Every selector is scoped under .tide so a page shell can compose its own
+ * layout around the component. All colours are component-scoped custom
+ * properties: a shell may override them on .tide if it wants to.
+ */
+
+.tide {
+  /* The figure is a self-contained picture, so it owns its own colours... */
+  --tide-sky: #e8f1f7;
+  --tide-water-top: #4aa8c8;
+  --tide-water-bottom: #1d6f93;
+  --tide-water-back: #8fcadd;
+  --tide-glow: rgba(74, 168, 200, 0.55);
+  --tide-badge-bg: rgba(74, 168, 200, 0.22);
+  --tide-rise-duration: 700ms;
+
+  /* ...but the text and border are drawn on the shell's background, so they
+   * derive from the inherited colour instead of assuming one. A component
+   * that hardcodes its text colour goes unreadable the moment the shell's
+   * background does not match its own palette assumption. */
+  --tide-border: color-mix(in srgb, currentColor 22%, transparent);
+  --tide-muted: color-mix(in srgb, currentColor 72%, transparent);
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0; /* let the component shrink inside narrow flex/grid parents */
+}
+
+/* Engines without color-mix fall back to the inherited colour outright. */
+@supports not (color: color-mix(in srgb, currentColor 50%, transparent)) {
+  .tide {
+    --tide-border: currentColor;
+    --tide-muted: inherit;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .tide {
+    --tide-sky: #10202b;
+    --tide-water-top: #2e88a8;
+    --tide-water-bottom: #0d4760;
+    --tide-water-back: #1d5a74;
+    --tide-glow: rgba(96, 196, 228, 0.5);
+    --tide-badge-bg: rgba(96, 196, 228, 0.2);
+  }
+}
+
+.tide__figure {
+  position: relative;
+  /* Fluid height: short on phones, never taller than it is useful. */
+  aspect-ratio: 3 / 2;
+  min-height: 7rem;
+  max-height: 16rem;
+  overflow: hidden;
+  border: 1px solid var(--tide-border);
+  border-radius: 0.75rem;
+  background: var(--tide-sky);
+  transition: box-shadow 400ms ease-out;
+}
+
+/* Fallback for engines without aspect-ratio support. */
+@supports not (aspect-ratio: 3 / 2) {
+  .tide__figure {
+    height: 11rem;
+  }
+}
+
+.tide__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.tide__sky {
+  fill: var(--tide-sky);
+}
+
+.tide__water {
+  transition: transform var(--tide-rise-duration) ease-out;
+}
+
+.tide__wave--back {
+  fill: var(--tide-water-back);
+  opacity: 0.75;
+  animation: tide-drift 11s linear infinite;
+}
+
+.tide__wave--front {
+  /* `fill` is set inline to the instance's gradient; this is the fallback for
+   * the rare case the gradient reference cannot resolve. */
+  fill: var(--tide-water-top);
+  animation: tide-drift 7s linear infinite;
+}
+
+/* The wave paths span twice the viewBox width, so shifting by one period
+ * (50 units) loops seamlessly. */
+@keyframes tide-drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50px);
+  }
+}
+
+/* Goal reached: a soft glow, not a hard highlight. */
+.tide--at-goal .tide__figure {
+  box-shadow: 0 0 0 1px var(--tide-glow), 0 0 1.5rem 0.25rem var(--tide-glow);
+}
+
+.tide--at-goal .tide__wave--front {
+  animation: tide-drift 7s linear infinite, tide-glow 4s ease-in-out infinite;
+}
+
+@keyframes tide-glow {
+  0%,
+  100% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.tide__readout {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-size: 0.95rem;
+}
+
+/* Only the scale is dimmed; the figure it belongs to is already quiet. */
+.tide__scale {
+  color: var(--tide-muted);
+}
+
+.tide__minutes {
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: inherit;
+}
+
+.tide__badge {
+  flex: 0 0 auto;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--tide-badge-bg);
+  color: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* Respect a system request for reduced motion: the level still changes, it
+ * just arrives without animating, and the waves hold still. */
+@media (prefers-reduced-motion: reduce) {
+  .tide {
+    --tide-rise-duration: 0ms;
+  }
+
+  .tide__water,
+  .tide__figure {
+    transition: none;
+  }
+
+  .tide__wave--back,
+  .tide__wave--front,
+  .tide--at-goal .tide__wave--front {
+    animation: none;
+  }
+}
