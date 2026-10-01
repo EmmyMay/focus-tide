@@ -11,11 +11,13 @@ import {
 } from './timer.mjs';
 import { getTodayMinutes, getWeek, getStreak } from './stats.mjs';
 import { createWeekView } from './week-view.mjs';
+import { createStorage, DEFAULT_DAILY_GOAL, MAX_DAILY_GOAL } from './storage.mjs';
+import { appendSession, MAX_LABEL_LENGTH } from './sessions.mjs';
+import { bindKeyboard } from './accessibility.mjs';
+import { createTide } from './tide.mjs';
 
-const STORAGE_KEY = 'focus-tide:v1';
-const DEFAULT_DAILY_GOAL = 120;
-const MAX_DAILY_GOAL = 1440;
 const TICK_MS = 250;
+const HEARTBEAT_MS = 30000;
 
 const elements = {
   remaining: document.getElementById('remaining-display'),
@@ -36,32 +38,15 @@ const elements = {
   sessionsEmpty: document.getElementById('sessions-empty')
 };
 
-async function loadOptional(path) {
-  try {
-    return await import(path);
-  } catch {
-    return null;
-  }
-}
-
-const continuation = window;
-const storageApi = await loadOptional('./storage.mjs');
-const sessionsApi = await loadOptional('./sessions.mjs');
-const tideApi = await loadOptional('./tide.mjs');
-const a11yApi = await loadOptional('./accessibility.mjs');
-
 const injectedStorage = (() => {
   try {
-    if (continuation.localStorage) {
-      return continuation.localStorage;
-    }
+    return window.localStorage;
   } catch {
     return null;
   }
-  return null;
 })();
 
-const storage = storageApi && injectedStorage ? storageApi.createStorage(injectedStorage) : null;
+const storage = createStorage(injectedStorage);
 
 let timer = createTimer(25);
 let sessions = [];
@@ -70,7 +55,14 @@ let tickHandle = null;
 let lastAnnouncedMinute = null;
 
 const weekView = createWeekView(elements.week);
-const tide = tideApi ? tideApi.createTide(elements.tide) : null;
+const tide = createTide(elements.tide);
+
+if (elements.label) {
+  elements.label.maxLength = MAX_LABEL_LENGTH;
+}
+if (elements.goal) {
+  elements.goal.max = String(MAX_DAILY_GOAL);
+}
 
 function isFinitePositive(value) {
   return typeof value === 'number' && Number.isFinite(value) && value > 0;
@@ -80,46 +72,12 @@ function normalizeGoal(value) {
   return isFinitePositive(value) ? Math.min(value, MAX_DAILY_GOAL) : DEFAULT_DAILY_GOAL;
 }
 
-function fallbackLoad() {
-  if (!injectedStorage) {
-    return null;
-  }
-  try {
-    const raw = injectedStorage.getItem(STORAGE_KEY);
-    if (typeof raw !== 'string') {
-      return null;
-    }
-    const parsed = JSON.parse(raw);
-    if (!parsed || parsed.version !== 1) {
-      return null;
-    }
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-function fallbackSave(snapshot) {
-  if (!injectedStorage) {
-    return false;
-  }
-  try {
-    injectedStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 function currentSnapshot() {
   return { version: 1, timer, sessions, dailyGoal };
 }
 
 function loadSnapshot() {
-  const data = storage ? storage.load() : fallbackLoad();
-  if (!data) {
-    return;
-  }
+  const data = storage.load();
   if (data.timer) {
     timer = data.timer;
   }
@@ -130,12 +88,7 @@ function loadSnapshot() {
 }
 
 function saveSnapshot() {
-  const snapshot = currentSnapshot();
-  if (storage) {
-    storage.save(snapshot);
-  } else {
-    fallbackSave(snapshot);
-  }
+  storage.save(currentSnapshot());
 }
 
 function announce(message) {
@@ -143,7 +96,7 @@ function announce(message) {
 }
 
 function appendCompleted(record) {
-  sessions = sessionsApi ? sessionsApi.appendSession(sessions, record) : [...sessions, record];
+  sessions = appendSession(sessions, record);
 }
 
 function renderRemaining() {
@@ -166,12 +119,11 @@ function renderRemaining() {
 
 function renderStats() {
   const now = Date.now();
-  elements.today.textContent = String(getTodayMinutes(sessions, now));
+  const todayMinutes = getTodayMinutes(sessions, now);
+  elements.today.textContent = String(todayMinutes);
   elements.streak.textContent = String(getStreak(sessions, dailyGoal, now));
   weekView.update(getWeek(sessions, now));
-  if (tide) {
-    tide.update({ minutes: getTodayMinutes(sessions, now), goal: dailyGoal });
-  }
+  tide.update({ minutes: todayMinutes, goal: dailyGoal });
 }
 
 function renderGoalInput() {
@@ -348,21 +300,19 @@ elements.presets.addEventListener('click', (event) => {
   }
 });
 
-if (a11yApi) {
-  a11yApi.bindKeyboard(document, {
-    onToggle: () => {
-      if (timer.status === 'idle') {
-        start();
-      } else if (timer.status === 'running') {
-        pause();
-      } else if (timer.status === 'paused') {
-        resume();
-      }
-    },
-    onCancel: cancel,
-    onPreset: applyPreset
-  });
-}
+bindKeyboard(document, {
+  onToggle: () => {
+    if (timer.status === 'idle') {
+      start();
+    } else if (timer.status === 'running') {
+      pause();
+    } else if (timer.status === 'paused') {
+      resume();
+    }
+  },
+  onCancel: cancel,
+  onPreset: applyPreset
+});
 
 function recoverExpired() {
   const result = advanceTimer(timer, Date.now());
@@ -380,8 +330,6 @@ if (timer.status === 'running') {
   ensureTicking();
 }
 render();
-
-const HEARTBEAT_MS = 30000;
 
 function reconcile() {
   const now = Date.now();
