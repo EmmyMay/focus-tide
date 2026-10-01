@@ -1,0 +1,50 @@
+/*
+ * Shared accessible controls for Focus Tide.
+ *
+ * Shell contract (index.html / src/app.mjs, owned by task 7):
+ * - Timer controls are real <button> elements with visible text or aria-label,
+ *   so Space and Enter activate them natively. bindKeyboard intentionally
+ *   ignores Space while a button is focused to avoid firing twice.
+ * - The remaining time and timer status live in a polite live region with
+ *   class="sr-only" plus a visible timer display, e.g.
+ *     <p class="sr-only" role="status" aria-live="polite">25:00 remaining</p>
+ * - The completion announcement reuses the same polite status region.
+ * - Keyboard shortcuts (Space, Escape, 1/2/3) are bound to the document by
+ *   bindKeyboard and must not steal keys from inputs, textareas, selects or
+ *   contenteditable elements.
+ */
+
+:root {
+  --focus-outline-color: #1a73e8;
+  --focus-outline-width: 3px;
+  --focus-outline-offset: 2px;
+}
+
+:focus-visible {
+  outline: var(--focus-outline-width) solid var(--focus-outline-color);
+  outline-offset: var(--focus-outline-offset);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
