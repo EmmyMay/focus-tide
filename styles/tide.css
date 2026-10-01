@@ -87,11 +87,19 @@
   animation: tide-drift 11s linear infinite;
 }
 
+/* The instance's gradient arrives as --tide-wave-fill from the component; the
+ * flat colour is the fallback if it is ever missing. */
 .tide__wave--front {
-  /* `fill` is set inline to the instance's gradient; this is the fallback for
-   * the rare case the gradient reference cannot resolve. */
-  fill: var(--tide-water-top);
+  fill: var(--tide-wave-fill, var(--tide-water-top));
   animation: tide-drift 7s linear infinite;
+}
+
+.tide__stop--top {
+  stop-color: var(--tide-water-top);
+}
+
+.tide__stop--bottom {
+  stop-color: var(--tide-water-bottom);
 }
 
 /* The wave paths span twice the viewBox width, so shifting by one period
