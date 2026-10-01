@@ -39,6 +39,7 @@ body {
   margin: 0 auto;
   padding: 1.5rem 1rem 3rem;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
 }
 
@@ -52,6 +53,7 @@ body {
 }
 
 .panel {
+  min-width: 0;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -150,6 +152,7 @@ button:disabled {
 .sessions__list li {
   border-bottom: 1px solid var(--border);
   padding-bottom: 0.35rem;
+  overflow-wrap: anywhere;
 }
 
 .sessions__empty {
@@ -158,7 +161,7 @@ button:disabled {
 
 @media (min-width: 48rem) {
   .app {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas:
       "header header"
       "timer goal"
