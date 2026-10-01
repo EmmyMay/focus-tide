@@ -27,6 +27,9 @@ export function isTextEntryElement(element) {
 }
 
 export function isButtonElement(element) {
+  if (!element || typeof element !== 'object') {
+    return false;
+  }
   const tag = tagNameOf(element);
   if (tag === 'BUTTON' || tag === 'SUMMARY') {
     return true;
