@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Focus Tide</title>
+    <link rel="stylesheet" href="styles/app.css" />
+    <link rel="stylesheet" href="styles/accessibility.css" />
+    <link rel="stylesheet" href="styles/tide.css" />
+    <link rel="stylesheet" href="styles/week-view.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="app__header">
+        <h1>Focus Tide</h1>
+        <p class="app__tagline">A calm focus timer where every finished session raises a tide.</p>
+      </header>
+
+      <section class="panel timer" aria-labelledby="timer-heading">
+        <h2 id="timer-heading">Timer</h2>
+        <p class="timer__remaining" id="remaining-display" aria-hidden="true">25:00</p>
+        <p class="sr-only" id="timer-status" role="status" aria-live="polite"></p>
+
+        <div class="presets" role="group" aria-label="Preset durations">
+          <button type="button" class="preset" data-preset="25">25 minutes</button>
+          <button type="button" class="preset" data-preset="50">50 minutes</button>
+          <button type="button" class="preset" data-preset="90">90 minutes</button>
+        </div>
+
+        <div class="field">
+          <label for="custom-minutes">Custom length (1–180 minutes)</label>
+          <input id="custom-minutes" type="number" min="1" max="180" inputmode="numeric" placeholder="e.g. 45" />
+        </div>
+
+        <div class="field">
+          <label for="session-label">Label (optional, one line)</label>
+          <input id="session-label" type="text" autocomplete="off" />
+        </div>
+
+        <div class="controls">
+          <button type="button" id="start-button">Start</button>
+          <button type="button" id="pause-button">Pause</button>
+          <button type="button" id="resume-button">Resume</button>
+          <button type="button" id="cancel-button">Cancel</button>
+        </div>
+      </section>
+
+      <section class="panel goal" aria-labelledby="goal-heading">
+        <h2 id="goal-heading">Daily goal</h2>
+        <div class="field">
+          <label for="daily-goal">Goal (minutes)</label>
+          <input id="daily-goal" type="number" min="1" max="1440" inputmode="numeric" />
+        </div>
+        <p class="goal__summary">
+          Today <strong id="today-minutes">0</strong> min · Streak <strong id="streak-count">0</strong>
+        </p>
+      </section>
+
+      <section class="panel tide-section" aria-labelledby="tide-heading">
+        <h2 id="tide-heading">Tide</h2>
+        <div id="tide" class="tide"></div>
+      </section>
+
+      <section class="panel week-section" aria-labelledby="week-heading">
+        <h2 id="week-heading">Last seven days</h2>
+        <div id="week"></div>
+      </section>
+
+      <section class="panel sessions" aria-labelledby="sessions-heading">
+        <h2 id="sessions-heading">Completed sessions</h2>
+        <p id="sessions-empty" class="sessions__empty">No sessions yet.</p>
+        <ul id="session-list" class="sessions__list"></ul>
+      </section>
+    </main>
+
+    <script type="module" src="src/app.mjs"></script>
+  </body>
+</html>
