@@ -173,6 +173,48 @@ test('rehydrated running state completes when its deadline has already passed', 
   assert.equal(result.state.status, 'idle');
 });
 
+test('pause exactly at the deadline keeps the timer running and eligible to complete', () => {
+  const running = startTimer(createTimer(1), T0, 'Boundary');
+  const paused = pauseTimer(running, T0 + 1 * MINUTE);
+  assert.equal(paused.status, 'running');
+  assert.equal(paused, running);
+
+  const result = advanceTimer(paused, T0 + 1 * MINUTE);
+  assert.equal(result.completed.id, `session-${T0}-1`);
+  assert.equal(result.completed.label, 'Boundary');
+  assert.equal(result.state.status, 'idle');
+
+  const again = advanceTimer(result.state, T0 + 2 * MINUTE);
+  assert.equal(again.completed, null);
+});
+
+test('pause after the deadline does not create a stuck zero-duration pause', () => {
+  const running = startTimer(createTimer(1), T0, 'Late pause');
+  const late = pauseTimer(running, T0 + 90 * 1000);
+  assert.equal(late.status, 'running');
+  assert.equal(late.endsAt, T0 + 1 * MINUTE);
+  assert.equal(getRemainingMs(late, T0 + 90 * 1000), 0);
+
+  const result = advanceTimer(late, T0 + 91 * 1000);
+  assert.equal(result.completed.id, `session-${T0}-1`);
+  assert.equal(result.completed.durationMinutes, 1);
+  assert.equal(result.completed.label, 'Late pause');
+  assert.equal(result.state.status, 'idle');
+  assert.equal(advanceTimer(result.state, T0 + 1e6).completed, null);
+});
+
+test('a past-deadline pause survives JSON refresh and completes exactly once', () => {
+  const running = startTimer(createTimer(25), T0, 'Refresh late');
+  const late = pauseTimer(running, T0 + 30 * MINUTE);
+  const rehydrated = JSON.parse(JSON.stringify(late));
+  assert.equal(rehydrated.status, 'running');
+
+  const first = advanceTimer(rehydrated, T0 + 31 * MINUTE);
+  assert.equal(first.completed.id, `session-${T0}-25`);
+  const second = advanceTimer(first.state, T0 + 32 * MINUTE);
+  assert.equal(second.completed, null);
+});
+
 test('advanceTimer keeps the session id stable across pause and resume', () => {
   const started = startTimer(createTimer(25), T0, 'Stable');
   const paused = pauseTimer(started, T0 + 30 * 1000);
