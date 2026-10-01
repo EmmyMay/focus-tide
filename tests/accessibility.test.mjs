@@ -59,6 +59,17 @@ test('Digit1/2/3 select the 25/50/90 minute presets', () => {
   assert.deepEqual(keyToAction(keyEvent({ key: '2', code: 'Digit2' })), { type: 'preset', minutes: 50 });
   assert.deepEqual(keyToAction(keyEvent({ key: '3', code: 'Digit3' })), { type: 'preset', minutes: 90 });
   assert.deepEqual(keyToAction(keyEvent({ key: '1', code: 'Numpad1' })), { type: 'preset', minutes: 25 });
+  assert.deepEqual(keyToAction(keyEvent({ key: '&', code: 'Digit1' })), { type: 'preset', minutes: 25 });
+});
+
+test('numpad navigation keys (NumLock off) never select presets', () => {
+  assert.equal(keyToAction(keyEvent({ key: 'End', code: 'Numpad1' })), null);
+  assert.equal(keyToAction(keyEvent({ key: 'ArrowDown', code: 'Numpad2' })), null);
+  assert.equal(keyToAction(keyEvent({ key: 'PageDown', code: 'Numpad3' })), null);
+  assert.equal(keyToAction(keyEvent({ key: 'ArrowLeft', code: 'Numpad4' })), null);
+  assert.deepEqual(keyToAction(keyEvent({ key: '1', code: 'Numpad1' })), { type: 'preset', minutes: 25 });
+  assert.deepEqual(keyToAction(keyEvent({ key: '2', code: 'Numpad2' })), { type: 'preset', minutes: 50 });
+  assert.deepEqual(keyToAction(keyEvent({ key: '3', code: 'Numpad3' })), { type: 'preset', minutes: 90 });
 });
 
 test('unrelated and empty keys produce no action', () => {
@@ -120,6 +131,22 @@ test('button-like inputs share the native Space behavior', () => {
     const target = { tagName: 'INPUT', type };
     assert.equal(isButtonElement(target), true, type);
     assert.equal(keyToAction(keyEvent({ key: ' ', code: 'Space', target })), null, type);
+  }
+});
+
+test('Space defers to summary and button-like ARIA roles', () => {
+  const targets = [
+    { tagName: 'SUMMARY' },
+    { tagName: 'DIV', role: 'button' },
+    { tagName: 'DIV', role: 'Button' },
+    { tagName: 'DIV', getAttribute: (name) => (name === 'role' ? 'checkbox' : null) },
+    { tagName: 'DIV', role: 'switch' },
+    { tagName: 'SPAN', role: 'tab' }
+  ];
+  for (const target of targets) {
+    assert.equal(isButtonElement(target), true, JSON.stringify(target));
+    assert.equal(keyToAction(keyEvent({ key: ' ', code: 'Space', target })), null, JSON.stringify(target));
+    assert.deepEqual(keyToAction(keyEvent({ key: '2', code: 'Digit2', target })), { type: 'preset', minutes: 50 });
   }
 });
 
